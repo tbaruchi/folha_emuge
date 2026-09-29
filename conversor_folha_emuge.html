@@ -166,7 +166,7 @@
     <h2><span class="passo p1">1</span>Selecione a planilha da folha (.xlsx)</h2>
     <label class="drop" id="drop" for="arquivo">
       <strong>Clique para escolher</strong> ou arraste o arquivo aqui
-      <small>Ex.: 008890052026_EMUGE.xlsx · o arquivo é processado apenas neste computador, nada é enviado para a internet.</small>
+      <small>Ex.: 008890082026_EMUGE.xlsx · o arquivo é processado apenas neste computador, nada é enviado para a internet.</small>
     </label>
     <input type="file" id="arquivo" accept=".xlsx,.xls,.xlsm">
     <p class="muted" id="nomeArquivo"></p>
@@ -220,17 +220,18 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 </script>
 <script>
 /*
- * Layout do arquivo de importação EMUGE (mesmo do 008890062026_EMUGE.prn),
+ * Layout do arquivo de importação EMUGE (mesmo do 008890082026_EMUGE.prn),
  * posições fixas, 78 caracteres por linha:
  *
  *   pos 01-03  coluna A (1 = débito, 2 = crédito), alinhada à esquerda
  *   pos 04-12  coluna B (conta), alinhada à direita (9 posições)
  *   pos 13-24  coluna C (valor), alinhado à direita (12 posições),
- *              vírgula decimal, 2 casas, sem separador de milhar
+ *              SEM vírgula: 2 casas decimais implícitas, sem separador de
+ *              milhar (1.739,59 -> "173959"; 0,62 -> "062"; 0,01 -> "001")
  *   pos 25     espaço
  *   pos 26-60  coluna D (centro de custo), alinhada à esquerda (35 posições,
  *              em branco quando não houver)
- *   pos 61-78  histórico fixo, ex.: "MOV. FOLHA 05/2026" (a coluna E da
+ *   pos 61-78  histórico fixo, ex.: "MOV. FOLHA 08/2026" (a coluna E da
  *              planilha é usada apenas para identificar a competência)
  *
  * Linhas terminadas em CRLF, inclusive a última.
@@ -263,6 +264,11 @@ var Conversor = (function () {
     var centavos = Math.round(Math.abs(n) * 100 + 1e-7);
     var s = Math.floor(centavos / 100) + "," + String(centavos % 100).padStart(2, "0");
     return (n < 0 && centavos > 0 ? "-" : "") + s;
+  }
+
+  // Valor como gravado no arquivo: "1739,59" -> "173959", "0,62" -> "062".
+  function valorArquivo(n) {
+    return formataValor(n).replace(",", "");
   }
 
   function montaLinha(a, b, valor, d, historico) {
@@ -322,7 +328,7 @@ var Conversor = (function () {
       if (Math.round(Math.abs(n) * 100 + 1e-7) === 0) avisos.push("Linha " + nLinha + ": valor zerado.");
       if (d.length > LARGURA_D) avisos.push("Linha " + nLinha + ": coluna D com mais de " + LARGURA_D + " caracteres.");
 
-      var valor = formataValor(n);
+      var valor = valorArquivo(n);
       if (valor.length > LARGURA_C) avisos.push("Linha " + nLinha + ": valor com mais de " + LARGURA_C + " posições; o layout foi deslocado.");
 
       saida.push(montaLinha(a, b, valor, d, historico));
@@ -353,6 +359,7 @@ var Conversor = (function () {
     detectaCompetencia: detectaCompetencia,
     historicoPadrao: historicoPadrao,
     formataValor: formataValor,
+    valorArquivo: valorArquivo,
     montaLinha: montaLinha,
     paraBytes: paraBytes,
     LARGURA_LINHA: LARGURA_A + LARGURA_B + LARGURA_C + 1 + LARGURA_D + LARGURA_E
@@ -449,7 +456,7 @@ if (typeof document !== "undefined") (function () {
       alertas += '<div class="alerta erro"><strong>Atenção:</strong> débitos e créditos não conferem (diferença de ' + moeda(dif) + ").</div>";
     }
     if (!p.comp.competencia) {
-      alertas += '<div class="alerta erro"><strong>Competência não identificada.</strong> Preencha o histórico no passo 3 (ex.: MOV. FOLHA 05/2026).</div>';
+      alertas += '<div class="alerta erro"><strong>Competência não identificada.</strong> Preencha o histórico no passo 3 (ex.: MOV. FOLHA 08/2026).</div>';
     } else if (p.comp.planilha && p.comp.nome && p.comp.planilha !== p.comp.nome) {
       alertas += '<div class="alerta aviso"><strong>Confira a competência:</strong> a coluna E indica ' + escapa(p.comp.planilha) +
         " e o nome do arquivo indica " + escapa(p.comp.nome) + ". Foi usada " + escapa(p.comp.competencia) + ".</div>";
